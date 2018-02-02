@@ -289,17 +289,20 @@ export class LookFor extends Behaviour {
         super(robot);
 
         const self = this;
-        const _lookAround = new LookAround(robot, settings, r => { 
-            self._mode = _toIntersection;
-        });
-        const _toIntersection = new ToIntersection(robot, r => {
-            self._mode = _lookAround;
-            let inverse = r._edge && r._edge.inverse;
-            _lookAround.reset({ visitedEdges: [inverse] });
-        });
-        this._mode = _toIntersection;
+        const _randomPath = new RandomPath(robot);
+        // const _toIntersection = new ToIntersection(robot, r => {
+        //     self._mode = _randomPath;
+        //     let inverse = r._edge && r._edge.inverse;
+        //     _randomPath.reset({ visitedEdges: [inverse] });
+        // });
+        this._mode = _randomPath;        
+        this._target = null;
 
         Object.seal(this);
+    }
+
+    reset (target) {
+        this._target = target;
     }
 
     update (args) {

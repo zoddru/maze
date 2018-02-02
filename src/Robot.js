@@ -1,7 +1,7 @@
 import AxisOfSight from './AxisOfSight';
 import Vector from './Vector';
 import Path from './Path';
-import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Patrol, Wait } from './Robot.Behaviour';
+import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol, LookFor } from './Robot.Behaviour';
 
 const defaultSettings = {
     walkSpeed: 0.04,
@@ -22,8 +22,9 @@ export default class Robot {
             path: new FollowPath(this),
             toIntersection: new ToIntersection(this),
             lookAround: new LookAround(this, settings),
+            wait: new Wait(this, settings),
             patrol: new Patrol(this, settings),
-            wait: new Wait(this, settings)
+            lookFor: new LookFor(this)
         };
 
         Object.freeze(modes);
@@ -92,11 +93,6 @@ export default class Robot {
         this.speed = this.settings.walkSpeed;
     }
 
-    patrol () {
-        this._mode = this._modes.patrol;
-        this.speed = this.settings.runSpeed;
-    }
-
     wait () {
         this._mode = this._modes.wait;
     }
@@ -111,6 +107,16 @@ export default class Robot {
         let inverse = this._edge && this._edge.inverse;
 
         this._mode.reset({ visitedEdges: [inverse] });
+    }
+
+    patrol () {
+        this._mode = this._modes.patrol;
+        this.speed = this.settings.runSpeed;
+    }
+
+    lookFor (target) {
+        this._mode = this._modes.lookFor;
+        this._mode.reset(target);
     }
 
     lookAt (closeNode) {
