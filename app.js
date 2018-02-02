@@ -61,7 +61,7 @@ function RunApp(map) {
 
     function addRobot (node, color) {
         const robot = new Robot(graph, Math.round(grid.tileWidth * 0.8), Math.round(grid.tileHeight * 0.8), node);//, { walkSpeed: 50 });
-        robot.lookFor();
+        robot.lookFor(player);
         robot.color = color;
         robots.push(robot);
     }
@@ -82,10 +82,7 @@ function RunApp(map) {
     function update(args) {
         player.update(args);
         robots.forEach(r => {
-            r.update(args);           
-            r.color = r.canSee(player)
-                ? Color.fire
-                : Color.electric;
+            r.update(args);
         });
     }
 }

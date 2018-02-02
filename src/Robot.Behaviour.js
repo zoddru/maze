@@ -1,4 +1,5 @@
 import Path from './Path';
+import Color from './Color';
 
 const defaultSettings = {
     walkSpeed: 0.04,
@@ -15,13 +16,13 @@ class Behaviour {
         this.robot = robot;
     }
 
-    reset () {}
+    reset() { }
 
-    update () {}
+    update() { }
 
-    setNewTarget () {}
+    setNewTarget() { }
 
-    draw () {}
+    draw() { }
 }
 
 export class BeStill extends Behaviour {
@@ -32,19 +33,20 @@ export class BeStill extends Behaviour {
 }
 
 export class FollowPath extends Behaviour {
-    constructor(robot) {
+    constructor(robot, onDone) {
         super(robot);
-        this._path = null;            
+        this._onDone = onDone || (r => r.stayPut());;
+        this._path = null;
         Object.seal(this);
     }
 
-    reset (node) {
+    reset(node) {
         const robot = this.robot;
         this._path = robot.graph.findPath(robot._targetNode, node);
-        
+
         if (this._path.length < 2)
             return;
-        
+
         if (robot._lastNode === this._path[1]) {
             robot._lastNode = this._path.shift();
             robot._setTarget(this._path[0]);
@@ -59,7 +61,7 @@ export class FollowPath extends Behaviour {
         }
     }
 
-    update (args) {
+    update(args) {
         this.robot._move(args);
     }
 
@@ -67,20 +69,25 @@ export class FollowPath extends Behaviour {
         const robot = this.robot;
         let last = this._path.shift(); // this should === this._targetNode
         let next = this._path[0];
-        
+
         if (!next) {
             next = last;
-            robot.stayPut(); // done
+            this._done(); // done
         }
-        
+
         robot._setTarget(next);
         robot._setNode(last);
     }
 
-    draw (ctx) {
+    draw(ctx) {
         if (this._path) {
             new Path(this._path).draw(ctx);
         }
+    }
+
+    _done() {
+        if (this._onDone)
+            this._onDone(this.robot);
     }
 }
 
@@ -90,7 +97,7 @@ export class RandomPath extends Behaviour {
         Object.freeze(this);
     }
 
-    update (args) {
+    update(args) {
         this.robot._move(args);
     }
 
@@ -99,10 +106,10 @@ export class RandomPath extends Behaviour {
 
         let inverse = robot._edge && robot._edge.inverse;
         let newEdge = robot._targetNode.randomEdge([inverse]) || inverse; // ignore the reverse of the previous edge, if there was one (unless we have no choice)
-        
+
         if (!newEdge)
             return; // done, nowhere to go
-        
+
         let lastNode = robot._targetNode;
         robot._setTarget(newEdge.node, newEdge);
         robot._setNode(lastNode);
@@ -116,7 +123,7 @@ export class ToIntersection extends Behaviour {
         Object.freeze(this);
     }
 
-    update (args) {
+    update(args) {
         this.robot._move(args);
     }
 
@@ -129,7 +136,7 @@ export class ToIntersection extends Behaviour {
         }
     }
 
-    _done () {
+    _done() {
         this._onDone(this.robot);
     }
 }
@@ -152,14 +159,14 @@ export class LookAround extends Behaviour {
         Object.seal(this);
     }
 
-    reset ({ node = null, visitedEdges = [] }) {
+    reset({ node = null, visitedEdges = [] }) {
         this._node = node || this.robot.closestNode;
         this._visitedEdges = visitedEdges;
         this._edgesToVisit = (this._node.edges.length - visitedEdges.length);
         this._lookElsewhere();
     }
 
-    update (args) {
+    update(args) {
         const iteration = args.iteration || 0;
 
         if (iteration > 1) {
@@ -192,17 +199,17 @@ export class LookAround extends Behaviour {
             this._lookElsewhere();
         }
 
-        robot.update({ diff: over, iteration: iteration + 1 });        
+        robot.update({ diff: over, iteration: iteration + 1 });
     }
 
-    _lookElsewhere () {
+    _lookElsewhere() {
         this._time = 0;
         const nextEdge = this._node.randomEdge(this._visitedEdges);
         this._visitedEdges.push(nextEdge);
         this.robot.lookAt(nextEdge.node);
     }
 
-    _done () {
+    _done() {
         this._onDone(this.robot);
     }
 }
@@ -222,11 +229,11 @@ export class Wait extends Behaviour {
         Object.seal(this);
     }
 
-    reset ({ node = null, visitedEdges = [] }) {
+    reset() {
         this._time = 0;
     }
 
-    update (args) {
+    update(args) {
         const iteration = args.iteration || 0;
 
         if (iteration > 1) {
@@ -249,10 +256,10 @@ export class Wait extends Behaviour {
 
         this._done();
 
-        this.robot.update({ diff: over, iteration: iteration + 1 });        
+        this.robot.update({ diff: over, iteration: iteration + 1 });
     }
 
-    _done () {
+    _done() {
         this._onDone(this.robot);
     }
 }
@@ -262,20 +269,20 @@ export class Patrol extends Behaviour {
         super(robot);
 
         const self = this;
-        const _lookAround = new LookAround(robot, settings, r => { 
-            self._mode = _toIntersection;
+        const lookAround = new LookAround(robot, settings, r => {
+            self._mode = toIntersection;
         });
-        const _toIntersection = new ToIntersection(robot, r => {
-            self._mode = _lookAround;
+        const toIntersection = new ToIntersection(robot, r => {
+            self._mode = lookAround;
             let inverse = r._edge && r._edge.inverse;
-            _lookAround.reset({ visitedEdges: [inverse] });
+            lookAround.reset({ visitedEdges: [inverse] });
         });
-        this._mode = _toIntersection;
+        this._mode = toIntersection;
 
         Object.seal(this);
     }
 
-    update (args) {
+    update(args) {
         this._mode.update(args);
     }
 
@@ -289,27 +296,82 @@ export class LookFor extends Behaviour {
         super(robot);
 
         const self = this;
-        const _randomPath = new RandomPath(robot);
-        // const _toIntersection = new ToIntersection(robot, r => {
-        //     self._mode = _randomPath;
-        //     let inverse = r._edge && r._edge.inverse;
-        //     _randomPath.reset({ visitedEdges: [inverse] });
-        // });
-        this._mode = _randomPath;        
+        const randomPath = new RandomPath(robot);
+        const lookAround = new LookAround(robot, settings, r => {
+            // todo
+        });
+        const toIntersection = new ToIntersection(robot, settings, r => {
+            // todo
+        });
+        const followPath = new FollowPath(robot, r => {
+            self._mode = randomPath;
+            randomPath.reset();
+        });
+        const wait = new Wait(robot, settings, r => {
+            self._mode = followPath;
+            followPath.reset(this._lastSeen.node);
+        });
+
         this._target = null;
+        this._lastSeen = { node: null, edge: null };
+        Object.seal(this._lastSeen);
+
+        this._mode = randomPath;
+        this._modes = { randomPath, wait, followPath, toIntersection, lookAround };
+        Object.freeze(this._modes);
 
         Object.seal(this);
     }
 
-    reset (target) {
+    reset(target) {
         this._target = target;
     }
 
-    update (args) {
+    update(args) {
+
+        const canSeeTarget = this.canSeeTarget;
+        
+        this.robot.color = this.isAlert ? Color.fire : Color.electric;
+
+        if (!canSeeTarget) {
+            this._mode.update(args);
+            return;
+        }
+           
+        const mode = this._mode;
+        const modes = this._modes;
+
+        if (mode === modes.randomPath) {
+            this._mode = this._modes.wait;
+            this._mode.reset();
+        }
+        else if (mode === modes.followPath) {
+            this._mode.reset(this._lastSeen.node);
+        }
+
         this._mode.update(args);
     }
 
     setNewTarget() {
         this._mode.setNewTarget();
+    }
+
+    get hasTarget() {
+        return !!this._target;
+    }
+
+    get isAlert() {
+        return this._mode !== this._modes.randomPath;
+    }
+
+    get canSeeTarget() {
+        const canSee = this.robot.canSee(this._target);
+        if (!canSee)
+            return false;
+
+        this._lastSeen.node = this._target.closestNode;
+        this._lastSeen.edge = this._target._edge;
+
+        return true;
     }
 }
