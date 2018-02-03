@@ -1,7 +1,7 @@
 import test from 'ava';
-import Grid from './Grid';
-import Graph from './Graph';
-import Robot from './Robot';
+import Grid from '../Grid';
+import Graph from '../Graph';
+import Robot from '../Robot';
 
 function buildGraph(t) {
     const grid = new Grid({ columns: 5, rows: 3 }, { width: 50, height: 30 });

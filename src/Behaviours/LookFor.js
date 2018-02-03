@@ -1,5 +1,5 @@
-import Color from './Color';
-import { Behaviour, BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Robot.Behaviour';
+import Color from '../Color';
+import { Behaviour, BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Behaviour';
 
 export default class LookFor extends Behaviour {
     constructor(robot, settings) {

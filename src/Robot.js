@@ -1,8 +1,8 @@
 import AxisOfSight from './AxisOfSight';
 import Vector from './Vector';
 import Path from './Path';
-import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Robot.Behaviour';
-import LookFor from './Robot.LookFor';
+import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Behaviours/Behaviour';
+import LookFor from './Behaviours/LookFor';
 
 const defaultSettings = {
     walkSpeed: 0.04,

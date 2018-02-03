@@ -1,4 +1,4 @@
-import Path from './Path';
+import Path from '../Path';
 
 const defaultSettings = {
     walkSpeed: 0.04,
