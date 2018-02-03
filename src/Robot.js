@@ -1,7 +1,8 @@
 import AxisOfSight from './AxisOfSight';
 import Vector from './Vector';
 import Path from './Path';
-import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol, LookFor } from './Robot.Behaviour';
+import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Robot.Behaviour';
+import LookFor from './Robot.LookFor';
 
 const defaultSettings = {
     walkSpeed: 0.04,
@@ -66,7 +67,15 @@ export default class Robot {
 
     get modes() {
         return this._modes;
-    } 
+    }
+
+    walk () {
+        this.speed = this.settings.walkSpeed;
+    }
+
+    run () {
+        this.speed = this.settings.runSpeed;
+    }
 
     update (args) {
         this._mode.update(args);

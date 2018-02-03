@@ -60,7 +60,7 @@ function RunApp(map) {
     timer.start();
 
     function addRobot (node, color) {
-        const robot = new Robot(graph, Math.round(grid.tileWidth * 0.8), Math.round(grid.tileHeight * 0.8), node);//, { walkSpeed: 50 });
+        const robot = new Robot(graph, Math.round(grid.tileWidth * 0.8), Math.round(grid.tileHeight * 0.8), node, { runSpeed: 0.11 });
         robot.lookFor(player);
         robot.color = color;
         robots.push(robot);

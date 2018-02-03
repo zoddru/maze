@@ -1,5 +1,4 @@
 import Path from './Path';
-import Color from './Color';
 
 const defaultSettings = {
     walkSpeed: 0.04,
@@ -11,7 +10,7 @@ const defaultSettings = {
 Object.freeze(defaultSettings);
 
 
-class Behaviour {
+export class Behaviour {
     constructor(robot) {
         this.robot = robot;
     }
@@ -288,90 +287,5 @@ export class Patrol extends Behaviour {
 
     setNewTarget() {
         this._mode.setNewTarget();
-    }
-}
-
-export class LookFor extends Behaviour {
-    constructor(robot, settings) {
-        super(robot);
-
-        const self = this;
-        const randomPath = new RandomPath(robot);
-        const lookAround = new LookAround(robot, settings, r => {
-            // todo
-        });
-        const toIntersection = new ToIntersection(robot, settings, r => {
-            // todo
-        });
-        const followPath = new FollowPath(robot, r => {
-            self._mode = randomPath;
-            randomPath.reset();
-        });
-        const wait = new Wait(robot, settings, r => {
-            self._mode = followPath;
-            followPath.reset(this._lastSeen.node);
-        });
-
-        this._target = null;
-        this._lastSeen = { node: null, edge: null };
-        Object.seal(this._lastSeen);
-
-        this._mode = randomPath;
-        this._modes = { randomPath, wait, followPath, toIntersection, lookAround };
-        Object.freeze(this._modes);
-
-        Object.seal(this);
-    }
-
-    reset(target) {
-        this._target = target;
-    }
-
-    update(args) {
-
-        const canSeeTarget = this.canSeeTarget;
-        
-        this.robot.color = this.isAlert ? Color.fire : Color.electric;
-
-        if (!canSeeTarget) {
-            this._mode.update(args);
-            return;
-        }
-           
-        const mode = this._mode;
-        const modes = this._modes;
-
-        if (mode === modes.randomPath) {
-            this._mode = this._modes.wait;
-            this._mode.reset();
-        }
-        else if (mode === modes.followPath) {
-            this._mode.reset(this._lastSeen.node);
-        }
-
-        this._mode.update(args);
-    }
-
-    setNewTarget() {
-        this._mode.setNewTarget();
-    }
-
-    get hasTarget() {
-        return !!this._target;
-    }
-
-    get isAlert() {
-        return this._mode !== this._modes.randomPath;
-    }
-
-    get canSeeTarget() {
-        const canSee = this.robot.canSee(this._target);
-        if (!canSee)
-            return false;
-
-        this._lastSeen.node = this._target.closestNode;
-        this._lastSeen.edge = this._target._edge;
-
-        return true;
     }
 }
