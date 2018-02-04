@@ -13,10 +13,10 @@ export default class LookFor extends Behaviour {
         const chaseToIntersection = new ToIntersection(robot, r => {
             this._lookAround();
         });
-        const chaseVisible = new FollowPath(robot, r => {        
+        const chaseVisible = new FollowPath(robot, r => {
             this._chaseToIntersection();
         });
-        const chaseAroundCorner = new FollowPath(robot, r => {        
+        const chaseAroundCorner = new FollowPath(robot, r => {
             this._chaseToIntersection();
         });
         const justSpotted = new Wait(robot, settings, r => {
@@ -30,17 +30,7 @@ export default class LookFor extends Behaviour {
         this._lastSeen = { node: null };
         Object.seal(this._lastSeen);
 
-        //this._mode = new BeStill(robot);
-        let _mode = new BeStill(robot);
-        Object.defineProperty(this, '_mode', {
-            get: () => { return _mode; },
-            set: (_m) => { 
-                const key = Object.keys(self._modes).filter((k) => {return self._modes[k] === _m;})[0];
-                console.log(key);
-                _mode = _m; 
-            }
-        });
-
+        this._mode = new BeStill(robot);
         this._modes = { strollAround, justSpotted, chaseVisible, chaseAroundCorner, chaseToIntersection, lookAround, giveUp };
         Object.freeze(this._modes);
 
@@ -48,12 +38,12 @@ export default class LookFor extends Behaviour {
     }
 
     reset(target) {
-        this._target = target;        
+        this._target = target;
         this._beCool();
     }
 
-    update(args) {        
-        this.robot.color = this.isAlert ? Color.fire : Color.electric;
+    update(args) {
+        this.robot.color = this.isAlert ? Color.fire : Color.grass;
 
         if (!this.canSeeTarget) {
             this._updateCannotSee(args);
@@ -78,7 +68,7 @@ export default class LookFor extends Behaviour {
         const mode = this._mode;
         const modes = this._modes;
 
-        if (mode === modes.strollAround || mode === modes.giveUp) {
+        if (!this.isAlert) {
             this._justSpotted();
         }
         else if (this.isChasing) {
@@ -92,7 +82,7 @@ export default class LookFor extends Behaviour {
         this._mode.setNewTarget();
     }
 
-    draw (ctx) {
+    draw(ctx) {
         this._mode.draw(ctx);
     }
 
@@ -101,7 +91,9 @@ export default class LookFor extends Behaviour {
     }
 
     get isAlert() {
-        return this._mode !== this._modes.strollAround;
+        const mode = this._mode;
+        const modes = this._modes;
+        return mode !== modes.strollAround && mode !== modes.giveUp;
     }
 
     get isChasing() {
@@ -120,36 +112,42 @@ export default class LookFor extends Behaviour {
         return true;
     }
 
-    _beCool () {
+    get currentModeName() {
+        const mode = this._mode;
+        const modes = this._modes;
+        return Object.keys(modes).filter((k) => { return modes[k] === mode; })[0];
+    }
+
+    _beCool() {
         this.robot.walk();
         this._mode = this._modes.strollAround;
         this._mode.reset();
     }
 
-    _justSpotted () {
+    _justSpotted() {
         this._mode = this._modes.justSpotted;
         this._mode.reset();
     }
 
-    _chase () {
+    _chase() {
         this.robot.run();
         this._mode = this._modes.chaseVisible;
         this._mode.reset(this._lastSeen.node);
     }
 
-    _chaseAroundCorner () {
+    _chaseAroundCorner() {
         this.robot.run();
         this._mode = this._modes.chaseAroundCorner
         this._mode.reset(this._lastSeen.node);
     }
 
-    _chaseToIntersection () {
+    _chaseToIntersection() {
         this.robot.run();
         this._mode = this._modes.chaseToIntersection
         this._mode.reset();
     }
 
-    _lookAround () {
+    _lookAround() {
         const robot = this.robot;
         const inverse = robot._edge && robot._edge.inverse;
         robot.run();
@@ -157,7 +155,7 @@ export default class LookFor extends Behaviour {
         this._mode.reset({ visitedEdges: [inverse] });
     }
 
-    _giveUp () {
+    _giveUp() {
         this.robot.walk();
         this._mode = this._modes.giveUp;
         this._mode.reset();

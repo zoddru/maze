@@ -128,11 +128,8 @@ test('isIntersection', t => {
     grid.columns[1][0].block = true;
     const nodes = Node.createNodes(grid);
 
-    const first = nodes[0][0];
-    t.false(first.isIntersection);
-    
-    const second = nodes[0][1];
-    t.true(second.isIntersection);
+    t.false(nodes[0][0].isIntersection);
+    t.true(nodes[0][1].isIntersection);
 });
 
 test('randomEdge except', t => {

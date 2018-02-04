@@ -5,9 +5,9 @@ export default class Tile {
     constructor({
         index, i, j, x, y, width, height,
         left = null, up = null, 
-        blockColor = Color.grass,
-        selectedColor = Color.water,
-        selectedBlockColor = Color.electric
+        blockColor = Color.electric,
+        selectedColor = Color.grass,
+        selectedBlockColor = Color.water
     }) {
 
         Object.defineProperties(this, {

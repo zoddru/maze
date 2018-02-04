@@ -32,10 +32,10 @@ function RunApp(map) {
     player.stayPut();
 
     const robots = [];
-        
-    addRobot(graph.randomNode(), Color.electric);
-    addRobot(graph.randomNode(), Color.electric);
-    addRobot(graph.randomNode(), Color.electric);
+
+    for (let i = 0; i < 10; i += 1) {
+        addRobot(graph.randomNode(), Color.grass);
+    }
 
     const timer = new TimerFactory().create(args => {
         update(args);

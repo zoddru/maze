@@ -22,6 +22,10 @@ export class Behaviour {
     setNewTarget() { }
 
     draw() { }
+
+    static get DefaultSettings() {
+        return defaultSettings;
+    }
 }
 
 export class BeStill extends Behaviour {
@@ -34,7 +38,7 @@ export class BeStill extends Behaviour {
 export class FollowPath extends Behaviour {
     constructor(robot, onDone) {
         super(robot);
-        this._onDone = onDone || (r => r.stayPut());;
+        this._onDone = onDone || (r => r.stayPut());
         this._path = null;
         Object.seal(this);
     }
