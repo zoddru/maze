@@ -92,19 +92,19 @@ test('walkTo', t => {
 
     const { robot, graph } = createSetup();
 
-    t.is(robot._mode, robot.modes.still);
+    t.is(robot._behaviour, robot.behaviours.still);
     t.is(robot.pos.x, 5);
     t.is(robot.pos.y, 5);
 
     robot.update({ diff: 1 });
 
-    t.is(robot._mode, robot.modes.still);
+    t.is(robot._behaviour, robot.behaviours.still);
     t.is(robot.pos.x, 5);
     t.is(robot.pos.y, 5);
 
     robot.walkTo(graph.nodes[2][0]);
 
-    t.is(robot._mode, robot.modes.path);
+    t.is(robot._behaviour, robot.behaviours.path);
 
     robot.update({ diff: 1 });
 
@@ -116,7 +116,7 @@ test('walkTo', t => {
     t.is(robot.pos.x, 25);
     t.is(robot.pos.y, 5);
 
-    t.is(robot._mode, robot.modes.path);
+    t.is(robot._behaviour, robot.behaviours.path);
     
     robot.update({ diff: 1 });
 });
@@ -127,7 +127,6 @@ test('lookAt looks at the correct node', t => {
     t.is(robot.directionName, 'none');
 
     robot.lookAt(graph.nodes[2][2]);
-    t.is(robot.directionName, 'none');
 
     robot.lookAt(graph.nodes[0][1]);
     t.is(robot.directionName, 'down');

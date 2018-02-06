@@ -1,8 +1,6 @@
 import Path from '../Path';
 
 const defaultSettings = {
-    walkSpeed: 0.04,
-    runSpeed: 0.12,
     lookWait: 500,
     alertWait: 1000
 };
@@ -91,6 +89,45 @@ export class FollowPath extends Behaviour {
     _done() {
         if (this._onDone)
             this._onDone(this.robot);
+    }
+}
+
+export class Follow extends Behaviour {
+    constructor(robot, onDone) {
+        super(robot);
+
+        const self = this;
+        onDone = onDone || (r => self.reset(self._target));
+
+        this._target = null;
+        this._targetNode = null;
+        this._followPath = new FollowPath(robot, onDone);
+        Object.seal(this);
+    }
+
+    reset(target) {
+        this._target = target;
+        this._targetNode = target.closestNode;
+
+        this._followPath.reset(this._targetNode);
+    }
+
+    update(args) {
+        const targetNode = this._target.closestNode;
+        if (targetNode !== this._targetNode) {
+            this._targetNode = targetNode;
+            this._followPath.reset(targetNode);
+        }
+        
+        this._followPath.update(args);
+    }
+
+    setNewTarget() {
+        this._followPath.setNewTarget();
+    }
+
+    draw(ctx) {
+        this._followPath.draw(ctx);
     }
 }
 
@@ -273,23 +310,23 @@ export class Patrol extends Behaviour {
 
         const self = this;
         const lookAround = new LookAround(robot, settings, r => {
-            self._mode = toIntersection;
+            self._behaviour = toIntersection;
         });
         const toIntersection = new ToIntersection(robot, r => {
-            self._mode = lookAround;
+            self._behaviour = lookAround;
             let inverse = r._edge && r._edge.inverse;
             lookAround.reset({ visitedEdges: [inverse] });
         });
-        this._mode = toIntersection;
+        this._behaviour = toIntersection;
 
         Object.seal(this);
     }
 
     update(args) {
-        this._mode.update(args);
+        this._behaviour.update(args);
     }
 
     setNewTarget() {
-        this._mode.setNewTarget();
+        this._behaviour.setNewTarget();
     }
 }

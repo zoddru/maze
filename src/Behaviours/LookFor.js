@@ -1,11 +1,10 @@
 import Color from '../Color';
-import { Behaviour, BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Behaviour';
+import { Behaviour, BeStill, RandomPath, FollowPath, Follow, ToIntersection, LookAround, Wait } from './Behaviour';
 
 export default class LookFor extends Behaviour {
     constructor(robot, settings) {
         super(robot);
 
-        const self = this;
         const strollAround = new RandomPath(robot);
         const lookAround = new LookAround(robot, settings, r => {
             this._giveUp();
@@ -30,9 +29,9 @@ export default class LookFor extends Behaviour {
         this._lastSeen = { node: null };
         Object.seal(this._lastSeen);
 
-        this._mode = new BeStill(robot);
-        this._modes = { strollAround, justSpotted, chaseVisible, chaseAroundCorner, chaseToIntersection, lookAround, giveUp };
-        Object.freeze(this._modes);
+        this._behaviour = new BeStill(robot);
+        this._behaviours = { strollAround, justSpotted, chaseVisible, chaseAroundCorner, chaseToIntersection, lookAround, giveUp };
+        Object.freeze(this._behaviours);
 
         Object.seal(this);
     }
@@ -42,48 +41,45 @@ export default class LookFor extends Behaviour {
         this._beCool();
     }
 
+    chase() {
+        if (!this.canSeeTarget)
+            return;
+        this._chase();
+    }
+
     update(args) {
         this.robot.color = this.isAlert ? Color.fire : Color.grass;
 
+        this._setBehaviour();
+
+        this._behaviour.update(args);
+    }
+
+    _setBehaviour() {
+        const behaviour = this._behaviour;
+        const behaviours = this._behaviours;
+
         if (!this.canSeeTarget) {
-            this._updateCannotSee(args);
+            if (behaviour === behaviours.chaseVisible) {
+                this._chaseAroundCorner();
+            }
+            return;
         }
-        else {
-            this._updateCanSee(args);
-        }
-    }
-
-    _updateCannotSee(args) {
-        const mode = this._mode;
-        const modes = this._modes;
-
-        if (mode === modes.chaseVisible) {
-            this._chaseAroundCorner();
-        }
-
-        this._mode.update(args);
-    }
-
-    _updateCanSee(args) {
-        const mode = this._mode;
-        const modes = this._modes;
-
+        
         if (!this.isAlert) {
             this._justSpotted();
         }
         else if (this.isChasing) {
             this._chase();
         }
-
-        this._mode.update(args);
     }
 
     setNewTarget() {
-        this._mode.setNewTarget();
+        this._behaviour.setNewTarget();
     }
 
     draw(ctx) {
-        this._mode.draw(ctx);
+        this._behaviour.draw(ctx);
     }
 
     get hasTarget() {
@@ -91,15 +87,18 @@ export default class LookFor extends Behaviour {
     }
 
     get isAlert() {
-        const mode = this._mode;
-        const modes = this._modes;
-        return mode !== modes.strollAround && mode !== modes.giveUp;
+        const behaviour = this._behaviour;
+        const behaviours = this._behaviours;
+        return behaviour !== behaviours.strollAround && behaviour !== behaviours.giveUp;
     }
 
     get isChasing() {
-        const mode = this._mode;
-        const modes = this._modes;
-        return mode === modes.chaseVisible || mode === modes.chaseAroundCorner || mode === modes.chaseToIntersection || mode === modes.lookAround;
+        const behaviour = this._behaviour;
+        const behaviours = this._behaviours;
+        return behaviour === behaviours.chaseVisible 
+            || behaviour === behaviours.chaseAroundCorner 
+            || behaviour === behaviours.chaseToIntersection
+            || behaviour === behaviours.lookAround;
     }
 
     get canSeeTarget() {
@@ -112,52 +111,52 @@ export default class LookFor extends Behaviour {
         return true;
     }
 
-    get currentModeName() {
-        const mode = this._mode;
-        const modes = this._modes;
-        return Object.keys(modes).filter((k) => { return modes[k] === mode; })[0];
+    get currentBehaviourName() {
+        const behaviour = this._behaviour;
+        const behaviours = this._behaviours;
+        return Object.keys(behaviours).filter((k) => { return behaviours[k] === behaviour; })[0];
     }
 
     _beCool() {
         this.robot.walk();
-        this._mode = this._modes.strollAround;
-        this._mode.reset();
+        this._behaviour = this._behaviours.strollAround;
+        this._behaviour.reset();
     }
 
     _justSpotted() {
-        this._mode = this._modes.justSpotted;
-        this._mode.reset();
+        this._behaviour = this._behaviours.justSpotted;
+        this._behaviour.reset();
     }
 
     _chase() {
         this.robot.run();
-        this._mode = this._modes.chaseVisible;
-        this._mode.reset(this._lastSeen.node);
+        this._behaviour = this._behaviours.chaseVisible;
+        this._behaviour.reset(this._lastSeen.node);
     }
 
     _chaseAroundCorner() {
         this.robot.run();
-        this._mode = this._modes.chaseAroundCorner
-        this._mode.reset(this._lastSeen.node);
+        this._behaviour = this._behaviours.chaseAroundCorner
+        this._behaviour.reset(this._lastSeen.node);
     }
 
     _chaseToIntersection() {
         this.robot.run();
-        this._mode = this._modes.chaseToIntersection
-        this._mode.reset();
+        this._behaviour = this._behaviours.chaseToIntersection
+        this._behaviour.reset();
     }
 
     _lookAround() {
         const robot = this.robot;
         const inverse = robot._edge && robot._edge.inverse;
         robot.run();
-        this._mode = this._modes.lookAround
-        this._mode.reset({ visitedEdges: [inverse] });
+        this._behaviour = this._behaviours.lookAround
+        this._behaviour.reset({ visitedEdges: [inverse] });
     }
 
     _giveUp() {
         this.robot.walk();
-        this._mode = this._modes.giveUp;
-        this._mode.reset();
+        this._behaviour = this._behaviours.giveUp;
+        this._behaviour.reset();
     }
 }

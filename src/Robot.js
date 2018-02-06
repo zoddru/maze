@@ -1,13 +1,13 @@
 import AxisOfSight from './AxisOfSight';
 import Vector from './Vector';
 import Path from './Path';
-import { BeStill, RandomPath, FollowPath, ToIntersection, LookAround, Wait, Patrol } from './Behaviours/Behaviour';
+import { BeStill, RandomPath, FollowPath, Follow, ToIntersection, LookAround, Wait, Patrol } from './Behaviours/Behaviour';
 import LookFor from './Behaviours/LookFor';
+import SearchAsGroup from './Behaviours/SearchAsGroup';
 
 const defaultSettings = {
     walkSpeed: 0.04,
-    runSpeed: 0.12,
-    lookWait: 500
+    runSpeed: 0.12
 };
 
 Object.freeze(defaultSettings);
@@ -17,20 +17,22 @@ export default class Robot {
                 
         settings = Object.assign({}, defaultSettings, settings || {});
 
-        const modes = {
+        const behaviours = {
             still: new BeStill(this),
             random: new RandomPath(this),
             path: new FollowPath(this),
+            follow: new Follow(this),
             toIntersection: new ToIntersection(this),
             lookAround: new LookAround(this, settings),
             wait: new Wait(this, settings),
             patrol: new Patrol(this, settings),
-            lookFor: new LookFor(this)
+            lookFor: new LookFor(this),
+            searchFor: new SearchAsGroup(this)
         };
 
-        Object.freeze(modes);
+        Object.freeze(behaviours);
 
-        let currentMode = modes.still;
+        let currentbehaviour = behaviours.still;
 
         Object.defineProperties(this, {
             pos: { value: null, writable: true },
@@ -38,13 +40,13 @@ export default class Robot {
 
             settings: { value: settings },
             
-            _modes: { value: modes },
-            _lastMode: { value: modes.still, writable: true },   
-            _mode: { 
-                get: function () { return currentMode; },
+            _behaviours: { value: behaviours },
+            _lastbehaviour: { value: behaviours.still, writable: true },   
+            _behaviour: { 
+                get: function () { return currentbehaviour; },
                 set: function (value) {
-                    this._lastMode = currentMode;
-                    currentMode = value;
+                    this._lastbehaviour = currentbehaviour;
+                    currentbehaviour = value;
                 }
             },
             
@@ -52,6 +54,7 @@ export default class Robot {
             _edge: { value: null, writable: true },
             _targetNode: { value: null, writable: true },
             _target: { value: null, writable: true }, // point (can be different from _targetNode.tile.center)
+            _direction: { value: null, writable: true },
             _lastDirection: { value: Vector.zero, writable: true },
             
             width: { value: width },
@@ -65,8 +68,8 @@ export default class Robot {
         this._setTarget(startNode || graph.root);
     }
 
-    get modes() {
-        return this._modes;
+    get behaviours() {
+        return this._behaviours;
     }
 
     walk () {
@@ -78,18 +81,18 @@ export default class Robot {
     }
 
     update (args) {
-        this._mode.update(args);
+        this._behaviour.update(args);
     }
     
     randomWalk () {
-        this._mode = this._modes.random;
+        this._behaviour = this._behaviours.random;
         this.speed = this.settings.walkSpeed;
     }
     
     walkTo (node) {
         this.speed = this.settings.walkSpeed;
-        this._mode = this._modes.path;
-        this._mode.reset(node);
+        this._behaviour = this._behaviours.path;
+        this._behaviour.reset(node);
     }
 
     runTo (node) {
@@ -97,44 +100,54 @@ export default class Robot {
         this.speed = this.settings.runSpeed;
     }
 
+    follow (target) {
+        this._behaviour = this._behaviours.follow;
+        this._behaviour.reset(target);
+    }
+
     walkToIntersection () {
-        this._mode = this._modes.toIntersection;
+        this._behaviour = this._behaviours.toIntersection;
         this.speed = this.settings.walkSpeed;
     }
 
     wait () {
-        this._mode = this._modes.wait;
+        this._behaviour = this._behaviours.wait;
     }
 
     stayPut () {
-        this._mode = this._modes.still;
+        this._behaviour = this._behaviours.still;
     }
 
     lookAround () {
-        this._mode = this._modes.lookAround;
+        this._behaviour = this._behaviours.lookAround;
 
         let inverse = this._edge && this._edge.inverse;
 
-        this._mode.reset({ visitedEdges: [inverse] });
+        this._behaviour.reset({ visitedEdges: [inverse] });
     }
 
     patrol () {
-        this._mode = this._modes.patrol;
+        this._behaviour = this._behaviours.patrol;
         this.speed = this.settings.runSpeed;
     }
 
     lookFor (target) {
-        this._mode = this._modes.lookFor;
-        this._mode.reset(target);
+        this._behaviour = this._behaviours.lookFor;
+        this._behaviour.reset(target,);
     }
 
-    lookAt (closeNode) {
-        const edge = this.closestNode.edges.find(e => e.node === closeNode);
+    searchFor (target, friends) {
+        this._behaviour = this._behaviours.searchFor;
+        this._behaviour.reset(target, friends);
+    }
 
-        if (!edge)
-            return;
+    lookAt (node) {
+        // const edge = this.closestNode.edges.find(e => e.node === closeNode);
 
-        this._setTarget(closeNode, edge);
+        // if (!edge)
+        //     return;
+
+        this._direction = node.tile.center.subtract(this.pos);
     }
 
     canSee (robot) {
@@ -155,7 +168,7 @@ export default class Robot {
     }
     
     get direction () {
-        const direction = this.targetVector.normalize();
+        const direction = this._direction.normalize();
 
         if (!Vector.zero.equals(direction)) {
             this._lastDirection = direction;
@@ -197,6 +210,7 @@ export default class Robot {
         this._targetNode = node;
         this._target = node.tile.center;          
         this._edge = edge || (!!this._lastNode ? this._lastNode.edgeTo(node) : null);
+        this._direction = this._target.subtract(this.pos);
     }
     
     _move (args) {            
@@ -223,9 +237,9 @@ export default class Robot {
 
         this.pos = p.add(this.velocity.scale(dt));
             
-        this._mode.setNewTarget();
+        this._behaviour.setNewTarget();
 
-        this._mode.update({ diff: (t - dt), iteration: iteration + 1 });
+        this._behaviour.update({ diff: (t - dt), iteration: iteration + 1 });
     }
     
     // draw functions     
@@ -235,7 +249,7 @@ export default class Robot {
         if (sight) {
             sight.draw(ctx);
         }
-        this._mode.draw(ctx);
+        this._behaviour.draw(ctx);
         
         ctx.fillRect((this.pos.x - this.hw), (this.pos.y - this.hh), this.width, this.height);
     }

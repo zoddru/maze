@@ -33,7 +33,7 @@ function RunApp(map) {
 
     const robots = [];
 
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
         addRobot(graph.randomNode(), Color.grass);
     }
 
@@ -60,8 +60,8 @@ function RunApp(map) {
     timer.start();
 
     function addRobot (node, color) {
-        const robot = new Robot(graph, Math.round(grid.tileWidth * 0.8), Math.round(grid.tileHeight * 0.8), node, { runSpeed: 0.11 });
-        robot.lookFor(player);
+        const robot = new Robot(graph, Math.round(grid.tileWidth * 0.8), Math.round(grid.tileHeight * 0.8), node, { runSpeed: 0.09 });
+        robot.lookFor(player, robots);
         robot.color = color;
         robots.push(robot);
     }
